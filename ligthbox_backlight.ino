@@ -25,13 +25,17 @@ void myApHook(){
 
   static String styles = "";
   styles += "* { padding: 0; margin: 0; box-sizing: border-box; }";
-  styles += "html, body { min-height: 100vh; }";
   styles += "body { font-family: sans-serif; font-size: 20px; line-height: 30px; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; }";
+  styles += ".app { position: absolute; left: 0; right: 0; top: 40%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; padding: 0 15px; }";
   styles += "h2 { font-size: 50px; line-height: 1; margin-bottom: 25px; }";
-  styles += "select, input, button { appearance: button; border: 1px solid black; padding: 10px 20px; font-size: 24px; background: transparent; border-radius: 8px; width: 300px; }";
+  styles += "select, input, button { appearance: button; border: 1px solid black; padding: 10px 20px; font-size: 24px; background: transparent; border-radius: 8px; width: 280px; }";
   styles += "button { background: #93f179; color: black; }";
   styles += "form { display: flex; flex-direction: column; gap: 20px; }";
   styles += "a { color: black; }";
+  styles += ".sending button span { display: none; } .sending button::before { content: 'Connecting...' }";
+  styles += ".err { max-width: 280px; display: none; }";
+  styles += ".sending .err { display: none; }";
+  styles += ".fail .err { display: block; }";
 
   static String html_meta = "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
 
@@ -42,8 +46,8 @@ void myApHook(){
 
     String html = "<html><head><title>Wi-Fi Setup</title>";
     html += html_meta;
-    html += "<style>" + styles + "</style></head><body>";
-    html += "<h2>Wi-Fi Setup</h2><form method='POST' action='/save'>";
+    html += "<style>" + styles + "</style></head><body><div class='app'>";
+    html += "<h2>Wi-Fi Setup</h2><form method='POST'>";
     
     if (n > 0) {
       String options;
@@ -51,19 +55,26 @@ void myApHook(){
           String ssid = WiFi.SSID(i);
           options += "<option value='" + ssid + "'>" + ssid + "</option>";
       }
-      html += "<select name='ssid'>" + options + "</select>";
+      html += "<select name='ssid' required>" + options + "</select>";
     } else {
-      html += "<input name='ssid' placeholder='Wi-Fi network' />";
+      html += "<input name='ssid' required placeholder='Wi-Fi network' />";
     }
 
     html += "<input name='pass' placeholder='Password'>";
-    html += "<button>Save</button></form></body></html>";
+    html += "<p class='err'>Failed to connect. Try again or change network or password</p>";
+    html += "<button><span>Save</span></button></form></div><script>";
+    html += "let f = document.querySelector('form'); let sending = false; let err = document.querySelector('.err');";
+    html += "f.addEventListener('submit', (e) => {";
+    html += "e.preventDefault(); if (sending) {return;} sending = true; f.classList.toggle('sending');";
+    html += "fetch('/connect', { method: 'POST', body: new FormData(f) }).then((r) => {";
+    html += "if (r.status === 400) { alert(''); f.classList.toggle('fail'); f.classList.toggle('sending'); sending = false; return; }";
+    html += "window.location = '/success'; }) })";
+    html += "</script></body></html>";
 
     server.send(200, "text/html", html);
   });
 
-  server.on("/save", HTTP_POST, [styles](){
-    Serial.print("/save handler");
+  server.on("/connect", HTTP_POST, []() {
     String ssid = server.arg("ssid");
     String pass = server.arg("pass");
 
@@ -71,8 +82,8 @@ void myApHook(){
     Serial.print("Trying to connect to Wi-Fi");
 
     int timeout = 0;
-    const int maxTimeout = 10000; // 10 секунд
-    while(WiFi.status() != WL_CONNECTED && timeout < maxTimeout){
+    const int maxTimeout = 10000;
+    while((WiFi.status() != WL_CONNECTED && WiFi.status() != WL_CONNECT_FAILED) && timeout < maxTimeout){
       delay(100);
       Serial.print(".");
       timeout += 100;
@@ -83,19 +94,20 @@ void myApHook(){
       Serial.println("Wi-Fi connected successfully!");
       homeSpan.setWifiCredentials(ssid.c_str(), pass.c_str());
 
-      String html = "<html><head><title>Wi-Fi is set up</title><style>" + styles + "</style>" + html_meta + "</head><body>";
-      html += "<h2>Wi-Fi is set up</h2><p>The device is rebooting. You can close this page and proceed with Home.app pairing</p>";
-      html += "</body></html>";
-      server.send(200, "text/html", html);
-      delay(1000);
-      ESP.restart();
+      server.send(200, "text/html", "ok");
     } else {
       Serial.println("Failed to connect!");
-      String html = "<html><head><title>Wi-Fi is set up</title><style>" + styles + "</style></head><body>";
-      html += "<h2>Failed to connect to Wi-Fi</h2><a href='/'>Try again</a>";
-      html += "</body></html>";
-      server.send(200, "text/html", html);
+      server.send(400, "text/html", "");
     }
+  });
+
+  server.on("/success", [](){
+    String html = "<html><head><title>Wi-Fi is set up</title><style>" + styles + "</style>" + html_meta + "</head><body><div class='app'>";
+    html += "<h2>Wi-Fi is set up</h2><p>The device is restarting. You can close this page and proceed with Home.app pairing</p>";
+    html += "</div></body></html>";
+    server.send(200, "text/html", html);
+    delay(1000);
+    ESP.restart();
   });
 
   server.onNotFound([]() {
