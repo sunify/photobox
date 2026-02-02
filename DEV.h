@@ -5,13 +5,17 @@
 #define DATA_PIN 4
 
 struct LED : Service::LightBulb {
+  SpanCharacteristic *power;
   SpanCharacteristic *brightness;
   CRGB leds[NUM_LEDS];
   CRGB color = CRGB(255, 160, 30);
   bool wasDisabled = false;
 
   LED () : Service::LightBulb() {
-    brightness = new Characteristic::Brightness(80, true);
+    power = new Characteristic::On(1, true);
+    brightness = new Characteristic::Brightness(20, true);
+    brightness->setRange(0, 100, 20);
+
     FastLED.addLeds<WS2812B, DATA_PIN, GRB>(this->leds, NUM_LEDS);
   }
 
