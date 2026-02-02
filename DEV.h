@@ -33,18 +33,7 @@ struct LED : Service::LightBulb {
       this->leds[i] = color;
     }
     if (this->wasDisabled) {
-      FastLED.setBrightness(30);
-      FastLED.show();
-      delay(150);
-      FastLED.setBrightness(10);
-      FastLED.show();
-      delay(50);
-      FastLED.setBrightness(50);
-      FastLED.show();
-      delay(50);
-      FastLED.setBrightness(0);
-      FastLED.show();
-      delay(50);
+      this->blink();
       this->wasDisabled = false;
     }
     FastLED.setBrightness(map(this->brightness->getNewVal(), 0, 100, 0, 255));
@@ -52,11 +41,28 @@ struct LED : Service::LightBulb {
   }
 
   void handleState() {
-    if (this->brightness->getNewVal() > 0) {
-      this->enable();
-    } else {
+    if (this->power->getNewVal() == 0 || this->brightness->getNewVal() == 0) {
       this->disable();
+    } else {
+      this->enable();
     }
+  }
+
+  void blink() {
+    FastLED.setBrightness(30);
+    FastLED.show();
+    delay(150);
+    FastLED.setBrightness(10);
+    FastLED.show();
+    delay(50);
+    FastLED.setBrightness(50);
+    FastLED.show();
+    delay(50);
+    FastLED.setBrightness(0);
+    FastLED.show();
+    delay(50);
+    FastLED.setBrightness(map(this->brightness->getNewVal(), 0, 100, 0, 255));
+    FastLED.show();
   }
 
   boolean update() {
