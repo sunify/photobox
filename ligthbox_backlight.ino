@@ -25,29 +25,31 @@ void myApHook(){
 
   static String styles = "";
   styles += "* { padding: 0; margin: 0; box-sizing: border-box; }";
-  styles += "body { font-family: sans-serif; font-size: 20px; line-height: 30px; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; }";
+  styles += "body { font-family: sans-serif; font-size: 18px; line-height: 30px; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; }";
   styles += ".app { position: absolute; left: 0; right: 0; top: 40%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; padding: 0 15px; }";
-  styles += "h2 { font-size: 50px; line-height: 1; margin-bottom: 25px; }";
+  styles += "h2 { font-size: 45px; line-height: 1; margin-bottom: 30px; }";
   styles += "select, input, button { appearance: button; border: 1px solid black; padding: 10px 20px; font-size: 24px; background: transparent; border-radius: 8px; width: 280px; }";
-  styles += "button { background: #93f179; color: black; }";
-  styles += "form { display: flex; flex-direction: column; gap: 20px; }";
+  styles += "select, input { border-radius: 8px 8px 0 0; }";
+  styles += "select + input, input + input { border-radius: 0 0 8px 8px; border-top: 0 }";
+  styles += "button { background: #93f179; color: black; margin-top: 15px; }";
+  styles += "form { display: flex; flex-direction: column; }";
   styles += "a { color: black; }";
-  styles += ".sending button span { display: none; } .sending button::before { content: 'Connecting...' }";
+  styles += ".sending button span { display: none; } .sending button::before { content: 'Подключение...' }";
   styles += ".err { max-width: 280px; display: none; }";
   styles += ".sending .err { display: none; }";
   styles += ".fail .err { display: block; }";
 
-  static String html_meta = "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
+  static String html_meta = "<meta name='viewport' content='width=device-width, initial-scale=1.0'><meta charset='utf-8'>";
 
   // WebServer
   server.on("/", [](){
     int n = WiFi.scanNetworks();
     Serial.println("Scan done");
 
-    String html = "<html><head><title>Wi-Fi Setup</title>";
+    String html = "<html><head><title>Настройка Wi-Fi</title>";
     html += html_meta;
     html += "<style>" + styles + "</style></head><body><div class='app'>";
-    html += "<h2>Wi-Fi Setup</h2><form method='POST'>";
+    html += "<h2>Настройка<br>Wi-Fi</h2><form method='POST'>";
     
     if (n > 0) {
       String options;
@@ -57,12 +59,12 @@ void myApHook(){
       }
       html += "<select name='ssid' required>" + options + "</select>";
     } else {
-      html += "<input name='ssid' required placeholder='Wi-Fi network' />";
+      html += "<input name='ssid' required placeholder='Сеть' />";
     }
 
-    html += "<input name='pass' placeholder='Password'>";
-    html += "<p class='err'>Failed to connect. Try again or change network or password</p>";
-    html += "<button><span>Save</span></button></form></div><script>";
+    html += "<input name='pass' placeholder='Пароль'>";
+    html += "<p class='err'>Не удалось подключиться. Попробуйте еще и проверьте пароль</p>";
+    html += "<button><span>Подключиться</span></button></form></div><script>";
     html += "let f = document.querySelector('form'); let sending = false; let err = document.querySelector('.err');";
     html += "f.addEventListener('submit', (e) => {";
     html += "e.preventDefault(); if (sending) {return;} sending = true; f.classList.toggle('sending');";
@@ -71,7 +73,7 @@ void myApHook(){
     html += "window.location = '/success'; }) })";
     html += "</script></body></html>";
 
-    server.send(200, "text/html", html);
+    server.send(200, "text/html; charset=utf-8", html);
   });
 
   server.on("/connect", HTTP_POST, []() {
@@ -94,18 +96,18 @@ void myApHook(){
       Serial.println("Wi-Fi connected successfully!");
       homeSpan.setWifiCredentials(ssid.c_str(), pass.c_str());
 
-      server.send(200, "text/html", "ok");
+      server.send(200, "text/html; charset=utf-8", "ok");
     } else {
       Serial.println("Failed to connect!");
-      server.send(400, "text/html", "");
+      server.send(400, "text/html; charset=utf-8", "");
     }
   });
 
   server.on("/success", [](){
-    String html = "<html><head><title>Wi-Fi is set up</title><style>" + styles + "</style>" + html_meta + "</head><body><div class='app'>";
-    html += "<h2>Wi-Fi is set up</h2><p>The device is restarting. You can close this page and proceed with Home.app pairing</p>";
+    String html = "<html><head><title>Wi-Fi настроен</title><style>" + styles + "</style>" + html_meta + "</head><body><div class='app'>";
+    html += "<h2>Wi-Fi настроен</h2><p>Лайтбокс перезагружается. Страницу можно закрыть и&nbsp;перейти к&nbsp;добавлению аксессуара в&nbsp;Home.app</p>";
     html += "</div></body></html>";
-    server.send(200, "text/html", html);
+    server.send(200, "text/html; charset=utf-8", html);
     delay(1000);
     ESP.restart();
   });
