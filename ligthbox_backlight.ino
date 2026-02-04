@@ -166,8 +166,11 @@ void loop() {
 
   int buttonVal = digitalRead(BUTTON_PIN);
   if (buttonVal != prevButtonVal) {
-    lastTimeHigh = millis();
     if (buttonVal == HIGH) {
+      lastTimeHigh = millis();
+    }
+    if (buttonVal == LOW && lastTimeHigh != 0 && (millis() - lastTimeHigh) < 300) {
+      lastTimeHigh = 0;
       cycleBrightness();
       lightbox->handleState();
     }
@@ -179,22 +182,6 @@ void loop() {
       lightbox->handleState();
     }
   }
-
-  // int resetVal = digitalRead(RESET_PIN);
-  // if (resetVal != prevResetVal) {
-  //   if (resetVal == LOW) {      
-  //     resetStart = millis();
-  //   } else {
-  //     if (resetStart != 0 && millis() - resetStart > 3000) {
-  //       Serial.println("Reset!");
-  //       // lightbox->blink();
-  //       // homeSpan.reset();
-  //       // ESP.restart();
-  //     }
-  //     resetStart = 0;
-  //   }
-  //   prevResetVal = resetVal;
-  // }
   
   server.handleClient();
   dns.processNextRequest();
