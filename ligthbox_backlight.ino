@@ -136,6 +136,7 @@ void setup() {
     new Service::AccessoryInformation();
       new Characteristic::Identify();
     lightbox = new LED();
+  lightbox->handleState();
 }
 
 int BRIGTHNESS_STEPS = 5;
@@ -144,7 +145,7 @@ void cycleBrightness() {
   int currentStep = lightbox->brightness->getVal() / STEP_SIZE;
   int nextStep = currentStep + 1;
   if (nextStep > BRIGTHNESS_STEPS) {
-    nextStep = 0;
+    nextStep = 1;
   }
   int brightness = nextStep * STEP_SIZE;
   lightbox->brightness->setVal(brightness);
@@ -152,8 +153,13 @@ void cycleBrightness() {
 }
 
 void turnoff() {
-  lightbox->brightness->setVal(0);
   lightbox->power->setVal(0);
+}
+
+void turnon() {
+  int brightness = lightbox->brightness->getVal();
+  lightbox->brightness->setVal(brightness == 0 ? 20 : brightness);
+  lightbox->power->setVal(1);
 }
 
 int prevButtonVal = LOW;
@@ -178,7 +184,11 @@ void loop() {
   } else {
     if (buttonVal == HIGH && lastTimeHigh != 0 && (millis() - lastTimeHigh) > 1000) {
       lastTimeHigh = 0;
-      turnoff();
+      if (lightbox->isDisabled()) {
+        turnon();
+      } else {
+        turnoff();
+      }
       lightbox->handleState();
     }
   }

@@ -8,15 +8,20 @@ struct LED : Service::LightBulb {
   SpanCharacteristic *power;
   SpanCharacteristic *brightness;
   CRGB leds[NUM_LEDS];
-  CRGB color = CRGB(255, 160, 30);
+  CRGB color = CRGB(255, 180, 70);
   bool wasDisabled = false;
 
   LED () : Service::LightBulb() {
-    power = new Characteristic::On(1, true);
+    power = new Characteristic::On(Characteristic::On::ON, true);
     brightness = new Characteristic::Brightness(20, true);
-    brightness->setRange(0, 100, 20);
+
+    this->wasDisabled = !this->isDisabled();
 
     FastLED.addLeds<WS2812B, DATA_PIN, GRB>(this->leds, NUM_LEDS);
+  }
+
+  bool isDisabled() {
+    return (bool)(power->getVal() == Characteristic::On::OFF || brightness->getVal() == 0);
   }
 
   void disable() {
@@ -41,7 +46,7 @@ struct LED : Service::LightBulb {
   }
 
   void handleState() {
-    if (this->power->getNewVal() == 0 || this->brightness->getNewVal() == 0) {
+    if (this->isDisabled()) {
       this->disable();
     } else {
       this->enable();
